@@ -1,0 +1,8 @@
+<style>
+ a {
+    display: inline-block;
+  }
+</style>
+
+<h1>{{ rfc_data.title }}</h1>
+{% for elem in rfc_data.text %} {{ elem|safe }} {% endfor %}

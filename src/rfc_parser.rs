@@ -1,3 +1,5 @@
+use std::borrow::BorrowMut;
+
 use tl::{self, VDom};
 
 #[derive(Default, Debug)]
@@ -12,7 +14,7 @@ impl RFCData {
         let resp = reqwest::get(format!("https://www.rfc-editor.org/rfc/rfc{}.html", num)).await?;
         if resp.status() == 200 {
             let rfc_html = resp.text().await?;
-            let output = tl::parse(&rfc_html, tl::ParserOptions::default())?;
+            let mut output = tl::parse(&rfc_html, tl::ParserOptions::default())?;
             let mut parsed_data = Self::parse(num, output)?;
             parsed_data.clean();
             Ok(parsed_data)
@@ -55,8 +57,8 @@ impl RFCData {
         self.text = text_vec;
     }
 
-    fn parse(num: u32, vdom: VDom) -> Result<Self, Box<dyn std::error::Error>> {
-        let parser = vdom.parser();
+    fn parse(num: u32, mut vdom: VDom) -> Result<Self, Box<dyn std::error::Error>> {
+        let mut parser = vdom.parser_mut();
 
         let mut title = "Title Missing".to_owned();
         let mut text = vec![];
@@ -73,6 +75,9 @@ impl RFCData {
                                         if tag.attributes().is_class_member("h1") {
                                             title = tag.inner_text(parser).to_string();
                                             continue;
+                                        } else if tag.attributes().is_class_member("h4") {
+                                            let mut name = tag.name_mut().as_utf8_str();
+                                            name = std::borrow::Cow::Borrowed("h4");
                                         } else {
                                             text.push(tag.raw().as_utf8_str().to_string());
                                         }
